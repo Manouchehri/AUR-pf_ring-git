@@ -3,7 +3,7 @@
 
 _gitname=PF_RING
 pkgbase="${_gitname,,}-git"
-pkgname=("pfring-kernel-git" "pfring-userland-git")
+pkgname=("pf_ring-kernel-git" "pf_ring-userland-git")
 # pkgname=("pfring-kernel-git" "pfring-userland-git" "pfring-drivers-git")
 _gitbranch=dev
 _gitauthor=ntop
@@ -39,15 +39,27 @@ build() {
 	sed -i "s/INSTDIR\ \:=\ \$(DESTDIR)/INSTDIR := \$(DESTDIR)\/usr/g" Makefile
 	make
 
+	cd "${srcdir}/${_gitname}/drivers/intel/e1000e/e1000e-3.2.7.1-zc/src/"
+	make
+
+	# cd "${srcdir}/${_gitname}/drivers/intel/igb/igb-5.3.3.5-zc/src/"
+	# make
+
+	cd "${srcdir}/${_gitname}/drivers/intel/ixgbe/ixgbe-4.1.5-zc/src/"
+	make
+
+	cd "${srcdir}/${_gitname}/drivers/intel/i40e/i40e-1.5.18-zc/src/"
+	make
+
+	cd "${srcdir}/${_gitname}/drivers/intel/fm10k/fm10k-0.20.1-zc/src/"
+	make
+
 	cd "${srcdir}/${_gitname}/userland"
 	./configure --prefix=/usr
 	make
-
-	# cd "${srcdir}/${_gitname}/drivers"
-	# make
 }
 
-package_pfring-kernel-git() {
+package_pf_ring-kernel-git() {
 	pkgdesc+=" - kernel module"
 	makedepends+=('linux-lts-headers' 'make' 'binutils' 'flex' 'bison')
 	depends+=('linux-lts' 'numactl')
@@ -60,7 +72,7 @@ package_pfring-kernel-git() {
 }
 
 
-package_pfring-userland-git() {
+package_pf_ring-userland-git() {
 	pkgdesc+=" - userland tools"
 	makedepends+=('parallel')
 
@@ -73,7 +85,7 @@ package_pfring-userland-git() {
 		-print0 | parallel -0 'cp -v {} ./{/}'
 }
 
-package_pfring-drivers-git() {
+package_pf_ring-drivers-git() {
 	pkgdesc+=" - kernel driver modules"
 	makedepends+=('linux-lts-headers' 'make' 'binutils' 'flex' 'bison')
 	depends+=('linux-lts' 'numactl')
