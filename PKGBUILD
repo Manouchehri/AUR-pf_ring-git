@@ -1,33 +1,103 @@
-# Maintainer: Tony Lambiris <tony@criticalstack.com>
-pkgname=pfring-kmod-dev-git
-pkgver=v6.4.0.r192.g08749c2
-_pkgname=PF_RING
-pkgrel=1
+# Maintainer: David Manouchehri
+# Contributor: Tony Lambiris <tony@criticalstack.com>
+
+_gitname=PF_RING
+pkgbase="${_gitname,,}-git"
+pkgname=("pfring-kernel-git" "pfring-userland-git" "pfring-drivers-git")
+_gitbranch=dev
+_gitauthor=ntop
 pkgdesc="High-speed packet processing framework (dev branch)"
-url="http://www.ntop.org"
-arch=('x86_64' 'i686')
-license=('GPL')
-depends=('numactl')
-makedepends=('linux-headers' 'make' 'binutils' 'flex' 'bison' 'git')
-conflicts=('pfring-kmod')
-provides=('pfring-kmod')
-source=("git+https://github.com/ntop/PF_RING.git#branch=dev")
-md5sums=('SKIP')
+url="https://github.com/${_gitauthor}/${_gitname}"
+license=('LGPL')
+source=("git://github.com/${_gitauthor}/${_gitname}#branch=${_gitbranch}")
+depends=('')
+makedepends=('git')
+# conflicts=("${_gitname}")
+# provides=("${_gitname}")
+sha512sums=('SKIP')
+arch=('aarch64' 'armv6h' 'armv7h' 'i686' 'x86_64') # arch=('any')
+pkgver=v6.0.3.r1094.g9e72191
+pkgrel=1
+# sha512sums_x86_64=('')
+# sha512sums_i686=('')
+# source_x86_64=('')
+# source_i686=('')
 
 pkgver() {
-	cd "$_pkgname"
-	git describe --long --tags | sed 's/\([^-]*-g\)/r\1/;s/-/./g'
+	cd "${srcdir}/${_gitname}"
+	(
+		set -o pipefail
+		git describe --long 2>/dev/null | sed 's/\([^-]*-g\)/r\1/;s/-/./g' ||
+		printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+	)
 }
 
-build() {
-	cd "${srcdir}/${_pkgname}/kernel"
-	./configure --prefix=/usr
-	sed -i "s/INSTDIR\ \:=\ \$(DESTDIR)/INSTDIR := \$(DESTDIR)\/usr/g" Makefile
-	make
+package_pfring-kernel-git() {
+	pkgdesc+=" - kernel module"
+	makedepends+=('linux-lts-headers' 'make' 'binutils' 'flex' 'bison')
+	depends+=('linux-lts' 'numactl')
+	conflicts+=("pfring-kmod-dev-git" "pfring-kmod-git")
+	provides+=("pfring-kmod-dev-git")
+
+	build() {
+		cd "${srcdir}/${_gitname}/kernel"
+		./configure --prefix=/usr
+		sed -i "s/INSTDIR\ \:=\ \$(DESTDIR)/INSTDIR := \$(DESTDIR)\/usr/g" Makefile
+		make
+	}
+
+	package() {
+		cd "${srcdir}/${_gitname}/kernel"
+		mkdir -p "${pkgdir}/usr/include/linux"
+		make DESTDIR="${pkgdir}" install
+	}
 }
 
-package() {
-	cd "${srcdir}/${_pkgname}/kernel"
-	mkdir -p ${pkgdir}/usr/include/linux
-	make DESTDIR="${pkgdir}" install
+package_pfring-userland-git() {
+	pkgdesc+=" - userland tools"
+
+	build() {
+		cd "${srcdir}/${_gitname}/userland"
+		./configure --prefix=/usr
+		sed -i "s/INSTDIR\ \:=\ \$(DESTDIR)/INSTDIR := \$(DESTDIR)\/usr/g" Makefile
+		make
+	}
+
+	package() {
+		cd "${srcdir}/${_gitname}/userland"
+		make DESTDIR="${pkgdir}" install
+	}
 }
+
+package_pfring-drivers-git() {
+	pkgdesc+=" - kernel driver modules"
+	makedepends+=('linux-lts-headers' 'make' 'binutils' 'flex' 'bison')
+	depends+=('linux-lts' 'numactl')
+	conflicts+=("pfring-kmod-dev-git" "pfring-kmod-git")
+	provides+=("pfring-kmod-dev-git")
+
+	build() {
+		cd "${srcdir}/${_gitname}/drivers"
+		./configure --prefix=/usr
+		sed -i "s/INSTDIR\ \:=\ \$(DESTDIR)/INSTDIR := \$(DESTDIR)\/usr/g" Makefile
+		make
+	}
+
+	package() {
+		cd "${srcdir}/${_gitname}/drivers"
+		make DESTDIR="${pkgdir}" install
+	}
+}
+
+# build() {
+# 	cd "${srcdir}/${_gitname}"
+# 	# ./autogen.sh
+# 	# ./configure --prefix=/usr
+# 	make
+# }
+
+# package() {
+# 	cd "${srcdir}/${_gitname}"
+# }
+
+# vim:set et sw=2 sts=2 tw=80:
