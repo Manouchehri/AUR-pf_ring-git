@@ -3,7 +3,8 @@
 
 _gitname=PF_RING
 pkgbase="${_gitname,,}-git"
-pkgname=("pfring-kernel-git" "pfring-userland-git" "pfring-drivers-git")
+pkgname=("pfring-kernel-git" "pfring-userland-git")
+# pkgname=("pfring-kernel-git" "pfring-userland-git" "pfring-drivers-git")
 _gitbranch=dev
 _gitauthor=ntop
 pkgdesc="High-speed packet processing framework (dev branch)"
@@ -32,6 +33,20 @@ pkgver() {
 	)
 }
 
+build() {
+	cd "${srcdir}/${_gitname}/kernel"
+	./configure --prefix=/usr
+	sed -i "s/INSTDIR\ \:=\ \$(DESTDIR)/INSTDIR := \$(DESTDIR)\/usr/g" Makefile
+	make
+
+	cd "${srcdir}/${_gitname}/userland"
+	./configure --prefix=/usr
+	make
+
+	# cd "${srcdir}/${_gitname}/drivers"
+	# make
+}
+
 package_pfring-kernel-git() {
 	pkgdesc+=" - kernel module"
 	makedepends+=('linux-lts-headers' 'make' 'binutils' 'flex' 'bison')
@@ -39,34 +54,23 @@ package_pfring-kernel-git() {
 	conflicts+=("pfring-kmod-dev-git" "pfring-kmod-git")
 	provides+=("pfring-kmod-dev-git")
 
-	build() {
-		cd "${srcdir}/${_gitname}/kernel"
-		./configure --prefix=/usr
-		sed -i "s/INSTDIR\ \:=\ \$(DESTDIR)/INSTDIR := \$(DESTDIR)\/usr/g" Makefile
-		make
-	}
-
-	package() {
-		cd "${srcdir}/${_gitname}/kernel"
-		mkdir -p "${pkgdir}/usr/include/linux"
-		make DESTDIR="${pkgdir}" install
-	}
+	cd "${srcdir}/${_gitname}/kernel"
+	mkdir -p "${pkgdir}/usr/include/linux"
+	make DESTDIR="${pkgdir}" install
 }
+
 
 package_pfring-userland-git() {
 	pkgdesc+=" - userland tools"
+	makedepends+=('parallel')
 
-	build() {
-		cd "${srcdir}/${_gitname}/userland"
-		./configure --prefix=/usr
-		sed -i "s/INSTDIR\ \:=\ \$(DESTDIR)/INSTDIR := \$(DESTDIR)\/usr/g" Makefile
-		make
-	}
-
-	package() {
-		cd "${srcdir}/${_gitname}/userland"
-		make DESTDIR="${pkgdir}" install
-	}
+	cd "${srcdir}/${_gitname}/userland"
+	make DESTDIR="${pkgdir}" install
+	mkdir -p "${pkgdir}/usr/bin"
+	cd "${pkgdir}/usr/bin"
+	find "${srcdir}/${_gitname}/userland/examples/" \
+		"${srcdir}/${_gitname}/userland/examples_zc/" -executable -type f \
+		-print0 | parallel -0 'cp -v {} ./{/}'
 }
 
 package_pfring-drivers-git() {
@@ -76,17 +80,8 @@ package_pfring-drivers-git() {
 	conflicts+=("pfring-kmod-dev-git" "pfring-kmod-git")
 	provides+=("pfring-kmod-dev-git")
 
-	build() {
-		cd "${srcdir}/${_gitname}/drivers"
-		./configure --prefix=/usr
-		sed -i "s/INSTDIR\ \:=\ \$(DESTDIR)/INSTDIR := \$(DESTDIR)\/usr/g" Makefile
-		make
-	}
-
-	package() {
-		cd "${srcdir}/${_gitname}/drivers"
-		make DESTDIR="${pkgdir}" install
-	}
+	cd "${srcdir}/${_gitname}/drivers"
+	make DESTDIR="${pkgdir}" install
 }
 
 # build() {
